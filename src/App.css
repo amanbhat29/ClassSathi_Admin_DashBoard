@@ -1,0 +1,20 @@
+.workspace-column {
+  min-width: 0;
+}
+
+.summary-column {
+  width: 300px;
+}
+
+.summary-stat-placeholder {
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+  margin-top: 8px;
+}
+
+@media (max-width: 1100px) {
+  .summary-column {
+    width: 100%;
+  }
+}

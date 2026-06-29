@@ -1,0 +1,309 @@
+/* ============ PDF PREVIEW MODAL ============ */
+.pdf-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(20, 20, 30, 0.75);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  animation: pdf-fadeIn 0.2s ease-out;
+}
+
+.pdf-modal-container {
+  width: 90%;
+  height: 90%;
+  background-color: #f8f9fa;
+  border-radius: 14px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: pdf-slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ============ TOOLBAR ============ */
+.pdf-toolbar-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e7e6ec;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(20, 20, 30, 0.02);
+}
+
+.pdf-toolbar-title {
+  font-weight: 700;
+  font-size: 15px;
+  color: #1c1c21;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 300px;
+}
+
+.pdf-toolbar-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pdf-toolbar-zoom-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #f1f0f5;
+  padding: 3px;
+  border-radius: 8px;
+  margin-right: 8px;
+}
+
+.pdf-toolbar-nav-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 12px;
+}
+
+.pdf-toolbar-pages {
+  font-size: 13px;
+  color: #55555e;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pdf-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.12s ease;
+  background-color: #f1f0f5;
+  color: #55555e;
+  cursor: pointer;
+}
+
+.pdf-btn:hover:not(:disabled) {
+  background-color: #e7e6ec;
+  color: #1c1c21;
+}
+
+.pdf-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pdf-btn-zoom, .pdf-btn-nav {
+  padding: 6px 10px;
+  font-size: 12px;
+  background-color: transparent;
+}
+
+.pdf-btn-zoom:hover:not(:disabled), .pdf-btn-nav:hover:not(:disabled) {
+  background-color: #e7e6ec;
+}
+
+.pdf-btn-primary {
+  background-color: #2f9e44;
+  color: #ffffff;
+}
+
+.pdf-btn-primary:hover:not(:disabled) {
+  background-color: #268038;
+  color: #ffffff;
+}
+
+.pdf-btn-ghost {
+  background-color: #ffffff;
+  border: 1.5px solid #e7e6ec;
+}
+
+.pdf-btn-danger {
+  background-color: #e03131;
+  color: #ffffff;
+}
+
+.pdf-btn-danger:hover:not(:disabled) {
+  background-color: #c92a2a;
+  color: #ffffff;
+}
+
+/* ============ VIEWER CONTAINER ============ */
+.pdf-viewer-content {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  background-color: #525659;
+}
+
+.pdf-viewer-loading {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  background-color: #f8f9fa;
+  color: #55555e;
+  gap: 12px;
+}
+
+/* ============ ANIMATIONS ============ */
+@keyframes pdf-fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pdf-slideUp {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Custom styles overrides for react-pdf-viewer core elements */
+.rpv-core__viewer {
+  background-color: #525659 !important;
+}
+
+/* ============ TEMPLATE SETTINGS MODAL ============ */
+.template-modal-container {
+  width: 92%;
+  height: 92%;
+  max-height: 92%;
+  background-color: var(--bg);
+  border-radius: 14px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: pdf-slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.template-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background-color: #ffffff;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.template-modal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background-color: #ffffff;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.template-modal-content {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  grid-template-rows: minmax(0, 1fr);
+  overflow: hidden;
+  min-height: 0;
+}
+
+.template-modal-left {
+  grid-column: 1;
+  min-width: 0;
+  min-height: 0;
+  padding: 24px;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+/* Prevent cards from shrinking — force them to overflow and trigger scrollbar */
+.template-modal-left > * {
+  flex-shrink: 0;
+}
+
+.template-modal-right {
+  grid-column: 2;
+  min-width: 0;
+  min-height: 0;
+  padding: 24px;
+  background-color: #ecebf1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  overflow-y: auto;
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.template-preview-wrapper {
+  width: 80%;
+  max-width: 480px;
+  position: sticky;
+  top: 24px;
+  pointer-events: none; /* Prevent the preview box from blocking clicks */
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .template-modal-container {
+    width: 96%;
+    height: 96%;
+    max-height: 96%;
+  }
+
+  .template-modal-content {
+    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .template-modal-left {
+    grid-column: auto;
+    min-width: 0;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    overflow-y: visible;
+    position: static;
+    z-index: auto;
+    flex-shrink: 0;
+  }
+
+  .template-modal-right {
+    grid-column: auto;
+    min-width: 0;
+    overflow-y: visible;
+    padding: 24px 16px;
+    position: static;
+    z-index: auto;
+    flex-shrink: 0;
+  }
+
+  .template-preview-wrapper {
+    width: 100%;
+    max-width: 100%;
+    position: static;
+    pointer-events: none;
+  }
+}

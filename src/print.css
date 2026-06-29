@@ -1,0 +1,165 @@
+/* ============ BROWSER PRINT LAYOUT ============ */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 20mm 15mm 20mm 15mm;
+    @bottom-center {
+      content: "Page " counter(page);
+      font-family: 'Archivo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 11px;
+      color: #8b8b93;
+      font-weight: 500;
+    }
+  }
+
+  /* Hide all non-printable UI components */
+  .sidebar,
+  .stepper,
+  .page-head,
+  .summary-column,
+  .preview-bar,
+  .gen-note,
+  .q-redo,
+  .q-tags {
+    display: none !important;
+  }
+
+  /* Reset layout constraints for printing */
+  html, body, #root {
+    background: #fff !important;
+    color: #1c1c21 !important;
+    display: block !important;
+    min-height: auto !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .main-layout-container {
+    display: block !important;
+    min-height: auto !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .main {
+    flex: none !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .layout {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .workspace-column {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Reset paper styling to prevent double border/shadow/padding */
+  .paper {
+    border: none !important;
+    box-shadow: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #fff !important;
+  }
+
+  /* Prevent question items from breaking across pages */
+  .q-row {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Ensure section headings stay with the first question below them */
+  .paper-section-title {
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+  }
+}
+
+/* ============ PROGRAMMATIC PDF EXPORT LAYOUT ============ */
+/* These rules are active during the html2pdf rendering phase when body has .is-generating-pdf class */
+.is-generating-pdf .sidebar,
+.is-generating-pdf .stepper,
+.is-generating-pdf .page-head,
+.is-generating-pdf .summary-column,
+.is-generating-pdf .preview-bar,
+.is-generating-pdf .gen-note,
+.is-generating-pdf .q-redo,
+.is-generating-pdf .q-tags {
+  display: none !important;
+}
+
+.is-generating-pdf html,
+.is-generating-pdf body,
+.is-generating-pdf #root {
+  background: #fff !important;
+  color: #1c1c21 !important;
+  display: block !important;
+  min-height: auto !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.is-generating-pdf .main-layout-container {
+  display: block !important;
+  min-height: auto !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.is-generating-pdf .main {
+  flex: none !important;
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.is-generating-pdf .layout {
+  display: block !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.is-generating-pdf .workspace-column {
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Reset paper styling to fit inside jsPDF margins perfectly without double spacing/borders */
+.is-generating-pdf .paper {
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: #fff !important;
+}
+
+/* Prevent question items from breaking across PDF pages */
+.is-generating-pdf .q-row {
+  break-inside: avoid !important;
+  page-break-inside: avoid !important;
+}
+
+/* Ensure section headings stay with the first question below them in PDF */
+.is-generating-pdf .paper-section-title {
+  break-after: avoid !important;
+  page-break-after: avoid !important;
+}
