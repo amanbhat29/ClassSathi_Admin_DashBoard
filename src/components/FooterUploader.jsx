@@ -1,10 +1,11 @@
-import BaseImageUploader from './BaseImageUploader';
+import ImageUploadCard from './ImageUploadCard';
 
 export default function FooterUploader({ value, onChange }) {
   return (
-    <BaseImageUploader
+    <ImageUploadCard
       label="Custom Footer Image (A4 Width)"
       value={value}
+      type="other"
       onChange={onChange}
     />
   );

@@ -1,0 +1,236 @@
+/* ============================================================
+   Word Template Editor Styles
+   Provides an A4-like canvas editing experience using Tiptap.
+   ============================================================ */
+
+/* --- Layout Container --- */
+.word-editor-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 0;
+}
+
+/* --- Scrollable wrapper around the canvas --- */
+.word-editor-scroll {
+  flex: 1;
+  overflow-y: auto;
+  background: #e8e7ed;
+  padding: 0 24px 24px;
+}
+
+/* --- A4-like page canvas --- */
+.word-editor-canvas {
+  width: 100%;
+  max-width: 680px;
+  min-height: 900px;
+  margin: 24px auto;
+  padding: 48px 56px;
+  background: #ffffff;
+  border: 1px solid #e0dfe5;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08),
+              0 0 0 1px rgba(0, 0, 0, 0.02);
+  position: relative;
+}
+
+/* ============================================================
+   Tiptap / ProseMirror Content Styles
+   ============================================================ */
+
+.word-editor-canvas .ProseMirror {
+  outline: none;
+  min-height: 800px;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #1c1c21;
+}
+
+/* --- Headings --- */
+.word-editor-canvas .ProseMirror h1 {
+  font-size: 24px;
+  font-weight: 800;
+  margin: 16px 0 8px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.word-editor-canvas .ProseMirror h2 {
+  font-size: 20px;
+  font-weight: 800;
+  margin: 14px 0 6px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.word-editor-canvas .ProseMirror h3 {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 12px 0 4px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.word-editor-canvas .ProseMirror h4 {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 10px 0 4px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* --- Paragraphs --- */
+.word-editor-canvas .ProseMirror p {
+  margin: 4px 0;
+}
+
+/* --- Horizontal Rule --- */
+.word-editor-canvas .ProseMirror hr {
+  border: none;
+  border-top: 2px solid #2f9e44;
+  margin: 16px 0;
+}
+
+/* ============================================================
+   Tables
+   ============================================================ */
+
+.word-editor-canvas .ProseMirror table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+}
+
+.word-editor-canvas .ProseMirror td,
+.word-editor-canvas .ProseMirror th {
+  border: 1px solid #d0cfd5;
+  padding: 8px 12px;
+  font-size: 13px;
+  vertical-align: top;
+  min-width: 80px;
+  position: relative;
+}
+
+.word-editor-canvas .ProseMirror th {
+  background: #f4f3f8;
+  font-weight: 700;
+  text-align: left;
+}
+
+/* --- Selected table cells (green tint overlay) --- */
+.word-editor-canvas .ProseMirror .selectedCell::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(47, 158, 68, 0.08);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ============================================================
+   Lists
+   ============================================================ */
+
+.word-editor-canvas .ProseMirror ul,
+.word-editor-canvas .ProseMirror ol {
+  padding-left: 24px;
+  margin: 8px 0;
+}
+
+.word-editor-canvas .ProseMirror li {
+  margin: 4px 0;
+}
+
+/* ============================================================
+   Images
+   ============================================================ */
+
+.word-editor-canvas .ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  margin: 8px 0;
+  display: block;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+.word-editor-canvas .ProseMirror img.logo-img {
+  max-height: 80px !important;
+  width: auto !important;
+  max-width: 120px !important;
+  object-fit: contain;
+  display: inline-block;
+  vertical-align: middle;
+  margin: 0 auto;
+}
+
+.word-editor-canvas .ProseMirror img.signature-img {
+  max-height: 48px !important;
+  width: auto !important;
+  max-width: 150px !important;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto 4px !important;
+}
+
+.word-editor-canvas .ProseMirror img.stamp-img {
+  max-height: 70px !important;
+  width: auto !important;
+  max-width: 70px !important;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto 4px !important;
+}
+
+/* ============================================================
+   Inline Formatting
+   ============================================================ */
+
+.word-editor-canvas .ProseMirror strong {
+  font-weight: 800;
+}
+
+.word-editor-canvas .ProseMirror em {
+  font-style: italic;
+}
+
+.word-editor-canvas .ProseMirror u {
+  text-decoration: underline;
+}
+
+/* ============================================================
+   Placeholder Text (shown when editor is empty)
+   ============================================================ */
+
+.word-editor-canvas .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: #aaabb0;
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/*
+ * NOTE — Question Placeholder Styling
+ * The {{QUESTION_PAPER}} placeholder text (rendered inside <p><strong>)
+ * cannot be targeted purely via CSS because CSS has no content-based
+ * selectors. Any visual distinction for the placeholder tag is applied
+ * programmatically in the WordEditor component (e.g. by wrapping it
+ * in a <span> with a data-attribute or a dedicated CSS class).
+ */
+
+/* ============================================================
+   Responsive — small screens
+   ============================================================ */
+
+@media (max-width: 768px) {
+  .word-editor-canvas {
+    padding: 32px 28px;
+    max-width: 100%;
+  }
+
+  .word-editor-scroll {
+    padding: 0 12px 12px;
+  }
+}

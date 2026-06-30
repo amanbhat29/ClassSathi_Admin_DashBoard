@@ -3,6 +3,8 @@ import { calculateTotals } from '../utils/helpers';
 import { useGeneratePDF } from '../hooks/useGeneratePDF';
 import PDFPreviewModal from '../components/pdf/PDFPreviewModal';
 import { useTemplate } from '../context/TemplateContext';
+import TemplateRenderer from '../components/TemplateRenderer';
+import '../styles/word-editor.css';
 
 const SECTION_NAMES = {
   mcq: "Section A — Multiple Choice Questions",
@@ -26,7 +28,7 @@ export default function Step3PreviewPrint({
 }) {
   const { totalMarks } = calculateTotals(qtypes);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const { template } = useTemplate();
+  const { template, templateMode } = useTemplate();
 
   const {
     pdfBlob,
@@ -127,6 +129,25 @@ export default function Step3PreviewPrint({
             ? { backgroundImage: `url("data:image/svg+xml;utf8,${encodeURIComponent(watermarkSvg)}")` }
             : {};
           
+          if (templateMode === 'word') {
+            return (
+              <div id="paperRoot" style={{ width: '100%' }}>
+                <TemplateRenderer
+                  template={template}
+                  questions={questions}
+                  qtypes={qtypes}
+                  examName={template.examName || examName}
+                  grade={template.grade || `Grade ${grade}`}
+                  subject={template.subject || subject}
+                  duration={template.duration || duration}
+                  totalMarks={template.totalMarks || totalMarks}
+                  isEditable={false}
+                  onRedoQuestion={onRedoQuestion}
+                />
+              </div>
+            );
+          }
+
           return (
             <div 
               className={`paper theme-${template.themeColor}`} 

@@ -10,16 +10,29 @@ import FooterUploader from './FooterUploader';
 import WatermarkSettings from './WatermarkSettings';
 import ThemeSelector from './ThemeSelector';
 import TemplatePreview from './TemplatePreview';
+import ImageUploadCard from './ImageUploadCard';
+
+// Word mode imports
+import TemplateModeSelector from './TemplateModeSelector';
+import WordTemplateEditor from './WordTemplateEditor';
 
 /**
  * UploadTemplateModal Component
  * Fullscreen layout modal offering school info, custom styling, watermarks, stamps, and logos.
  */
 export default function UploadTemplateModal({ isOpen, onClose }) {
-  const { template, saveTemplate, resetTemplate, DEFAULT_TEMPLATE } = useTemplate();
+  const { 
+    template, 
+    templateMode, 
+    setTemplateMode, 
+    saveTemplate, 
+    resetTemplate, 
+    DEFAULT_TEMPLATE 
+  } = useTemplate();
   
   // Local state to allow modifications before clicking Save
   const [localTemplate, setLocalTemplate] = useState(template);
+  const [localMode, setLocalMode] = useState(templateMode);
   const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
 
   // Sync state when modal is opened
@@ -27,6 +40,7 @@ export default function UploadTemplateModal({ isOpen, onClose }) {
     setPrevIsOpen(isOpen);
     if (isOpen) {
       setLocalTemplate(template);
+      setLocalMode(templateMode);
     }
   }
 
@@ -51,6 +65,7 @@ export default function UploadTemplateModal({ isOpen, onClose }) {
 
   const handleSave = () => {
     saveTemplate(localTemplate);
+    setTemplateMode(localMode);
     onClose();
   };
 
@@ -81,94 +96,110 @@ export default function UploadTemplateModal({ isOpen, onClose }) {
               Customize headers, logos, signatures, stamp seals, watermarks, and print layouts
             </div>
           </div>
+          <TemplateModeSelector activeMode={localMode} onChange={setLocalMode} />
         </div>
 
-        {/* Modal Content - Two Column Layout */}
-        <div className="template-modal-content">
-          {/* Left Column - Form controls (Scrollable) */}
-          <div className="template-modal-left">
-            {/* Theme selector */}
-            <div className="card" style={{ margin: 0 }}>
-              <div className="card-body">
-                <ThemeSelector
-                  activeTheme={localTemplate.themeColor}
-                  onChange={(color) => handleFieldChange('themeColor', color)}
-                />
-              </div>
-            </div>
-
-            {/* School details */}
-            <div className="card" style={{ margin: 0 }}>
-              <div className="card-body">
-                <div className="card-label">SCHOOL INFORMATION</div>
-                <SchoolInfoForm 
-                  values={localTemplate} 
-                  onFieldChange={handleFieldChange} 
-                />
-              </div>
-            </div>
-
-            {/* Uploads - Logo / Seal / Signatures */}
-            <div className="card" style={{ margin: 0 }}>
-              <div className="card-body">
-                <div className="card-label">LOGOS &amp; VERIFICATIONS</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <LogoUploader
-                    value={localTemplate.logo}
-                    onChange={(val) => handleFieldChange('logo', val)}
-                  />
-                  <StampUploader
-                    value={localTemplate.stamp}
-                    onChange={(val) => handleFieldChange('stamp', val)}
-                  />
+        {/* Modal Content - Conditional Layout */}
+        <div 
+          className="template-modal-content"
+          style={localMode === 'word' ? { display: 'flex', flexDirection: 'column' } : {}}
+        >
+          {localMode === 'word' ? (
+            <WordTemplateEditor template={localTemplate} onFieldChange={handleFieldChange} />
+          ) : (
+            <>
+              {/* Left Column - Form controls (Scrollable) */}
+              <div className="template-modal-left">
+                {/* Theme selector */}
+                <div className="card" style={{ margin: 0 }}>
+                  <div className="card-body">
+                    <ThemeSelector
+                      activeTheme={localTemplate.themeColor}
+                      onChange={(color) => handleFieldChange('themeColor', color)}
+                    />
+                  </div>
                 </div>
-                <div style={{ marginTop: '8px' }}>
-                  <SignatureUploader
-                    value={localTemplate.signature}
-                    onChange={(val) => handleFieldChange('signature', val)}
-                  />
+
+                {/* School details */}
+                <div className="card" style={{ margin: 0 }}>
+                  <div className="card-body">
+                    <div className="card-label">SCHOOL INFORMATION</div>
+                    <SchoolInfoForm 
+                      values={localTemplate} 
+                      onFieldChange={handleFieldChange} 
+                    />
+                  </div>
+                </div>
+
+                {/* Uploads - Logo / Seal / Signatures */}
+                <div className="card" style={{ margin: 0 }}>
+                  <div className="card-body">
+                    <div className="card-label">LOGOS &amp; VERIFICATIONS</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <LogoUploader
+                        value={localTemplate.logo}
+                        onChange={(val) => handleFieldChange('logo', val)}
+                      />
+                      <StampUploader
+                        value={localTemplate.stamp}
+                        onChange={(val) => handleFieldChange('stamp', val)}
+                      />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '8px' }}>
+                      <SignatureUploader
+                        value={localTemplate.signature}
+                        onChange={(val) => handleFieldChange('signature', val)}
+                      />
+                      <ImageUploadCard
+                        label="Teacher Signature"
+                        value={localTemplate.teacherSignature}
+                        type="signature"
+                        onChange={(val) => handleFieldChange('teacherSignature', val)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Custom Full Images (Header/Footer) */}
+                <div className="card" style={{ margin: 0 }}>
+                  <div className="card-body">
+                    <div className="card-label">CUSTOM HEADER &amp; FOOTER IMAGES</div>
+                    <div className="card-hint" style={{ marginBottom: '14px' }}>
+                      Upload full-width header/footer design sheets. These replace standard School Details/Signatures entirely if uploaded.
+                    </div>
+                    <HeaderUploader
+                      value={localTemplate.headerTemplate}
+                      onChange={(val) => handleFieldChange('headerTemplate', val)}
+                    />
+                    <FooterUploader
+                      value={localTemplate.footerTemplate}
+                      onChange={(val) => handleFieldChange('footerTemplate', val)}
+                    />
+                  </div>
+                </div>
+
+                {/* Watermark panel */}
+                <div className="card" style={{ margin: 0 }}>
+                  <div className="card-body">
+                    <div className="card-label">SECURITY &amp; BRANDING WATERMARK</div>
+                    <WatermarkSettings
+                      enabled={localTemplate.watermarkEnabled}
+                      text={localTemplate.watermarkText}
+                      opacity={localTemplate.watermarkOpacity}
+                      onFieldChange={handleFieldChange}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Custom Full Images (Header/Footer) */}
-            <div className="card" style={{ margin: 0 }}>
-              <div className="card-body">
-                <div className="card-label">CUSTOM HEADER &amp; FOOTER IMAGES</div>
-                <div className="card-hint" style={{ marginBottom: '14px' }}>
-                  Upload full-width header/footer design sheets. These replace standard School Details/Signatures entirely if uploaded.
+              {/* Right Column - Live Preview */}
+              <div className="template-modal-right">
+                <div className="template-preview-wrapper">
+                  <TemplatePreview template={localTemplate} />
                 </div>
-                <HeaderUploader
-                  value={localTemplate.headerTemplate}
-                  onChange={(val) => handleFieldChange('headerTemplate', val)}
-                />
-                <FooterUploader
-                  value={localTemplate.footerTemplate}
-                  onChange={(val) => handleFieldChange('footerTemplate', val)}
-                />
               </div>
-            </div>
-
-            {/* Watermark panel */}
-            <div className="card" style={{ margin: 0 }}>
-              <div className="card-body">
-                <div className="card-label">SECURITY &amp; BRANDING WATERMARK</div>
-                <WatermarkSettings
-                  enabled={localTemplate.watermarkEnabled}
-                  text={localTemplate.watermarkText}
-                  opacity={localTemplate.watermarkOpacity}
-                  onFieldChange={handleFieldChange}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column - Live Preview */}
-          <div className="template-modal-right">
-            <div className="template-preview-wrapper">
-              <TemplatePreview template={localTemplate} />
-            </div>
-          </div>
+            </>
+          )}
         </div>
 
         {/* Modal Bottom Footer */}

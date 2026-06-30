@@ -1,10 +1,11 @@
-import BaseImageUploader from './BaseImageUploader';
+import ImageUploadCard from './ImageUploadCard';
 
 export default function LogoUploader({ value, onChange }) {
   return (
-    <BaseImageUploader
+    <ImageUploadCard
       label="School Logo"
       value={value}
+      type="logo"
       onChange={onChange}
     />
   );

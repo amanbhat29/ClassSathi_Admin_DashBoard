@@ -12,6 +12,7 @@ const DEFAULT_TEMPLATE = {
   logo: null,
   stamp: null,
   signature: null,
+  teacherSignature: null,
   headerTemplate: null,
   footerTemplate: null,
   footerText: "Confidential Examination Paper",
@@ -19,7 +20,19 @@ const DEFAULT_TEMPLATE = {
   watermarkEnabled: false,
   watermarkText: "CONFIDENTIAL",
   watermarkOpacity: 0.1,
-  themeColor: "green"
+  themeColor: "green",
+  instructions: [
+    "All questions are compulsory unless stated otherwise.",
+    "The question paper consists of four sections — A, B, C and D.",
+    "Internal choices have been provided in some questions. Attempt only one of the alternatives in such questions.",
+    "Use of calculators is not permitted.",
+    "Please write down the serial number of the question before attempting it."
+  ],
+  examName: "HALF YEARLY EXAMINATION",
+  grade: "Grade 10",
+  subject: "Science",
+  duration: "3 Hours",
+  totalMarks: "100"
 };
 
 export function TemplateProvider({ children }) {
@@ -35,6 +48,23 @@ export function TemplateProvider({ children }) {
     }
     return DEFAULT_TEMPLATE;
   });
+
+  const [templateMode, setTemplateModeState] = useState(() => {
+    try {
+      return localStorage.getItem('cs_template_mode') || 'form';
+    } catch {
+      return 'form';
+    }
+  });
+
+  const setTemplateMode = (mode) => {
+    setTemplateModeState(mode);
+    try {
+      localStorage.setItem('cs_template_mode', mode);
+    } catch (err) {
+      console.error('[TemplateContext] Error saving template mode:', err);
+    }
+  };
 
   const updateTemplateField = (field, value) => {
     setTemplate((prev) => ({
@@ -68,6 +98,8 @@ export function TemplateProvider({ children }) {
     <TemplateContext.Provider
       value={{
         template,
+        templateMode,
+        setTemplateMode,
         updateTemplateField,
         saveTemplate,
         resetTemplate,

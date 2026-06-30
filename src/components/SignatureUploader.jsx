@@ -1,10 +1,11 @@
-import BaseImageUploader from './BaseImageUploader';
+import ImageUploadCard from './ImageUploadCard';
 
 export default function SignatureUploader({ value, onChange }) {
   return (
-    <BaseImageUploader
+    <ImageUploadCard
       label="Principal Signature"
       value={value}
+      type="signature"
       onChange={onChange}
     />
   );

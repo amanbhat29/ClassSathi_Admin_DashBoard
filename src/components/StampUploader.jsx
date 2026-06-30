@@ -1,10 +1,11 @@
-import BaseImageUploader from './BaseImageUploader';
+import ImageUploadCard from './ImageUploadCard';
 
 export default function StampUploader({ value, onChange }) {
   return (
-    <BaseImageUploader
+    <ImageUploadCard
       label="School Stamp / Seal"
       value={value}
+      type="stamp"
       onChange={onChange}
     />
   );
