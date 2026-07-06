@@ -14,7 +14,8 @@ const T = {
   apply: [
     c => `Solve a problem of your teacher's choice based on “${c}”, showing all steps.`,
     c => `Using what you learned in “${c}”, work out the answer to the situation described by your teacher.`,
-    c => `Apply the method from “${c}” to a new example and show your working.`
+    c => `Apply the method from “${c}” to a new example and show your working.`,
+    c => `The temperature of a wire of length \\(L\\) is increased by \\(\\Delta T\\). If the tension in the wire is \\(F\\), find the fractional change in its area \\(\\frac{\\Delta A}{A}\\).`
   ],
   analyse: [
     c => `Compare and contrast the two main ideas presented in “${c}”. Support your answer with reasons.`,
@@ -43,6 +44,10 @@ const MCQ_T = [
   c => ({
     text: `In “${c}”, which option is an example of the key idea?`,
     options: ["A textbook example", "A counter-example", "An unrelated case", "A trick option"]
+  }),
+  c => ({
+    text: `The temperature of a wire is changed. Find the tension in the wire.`,
+    options: ["\\(10^3\\) N", "\\(10^4\\) N", "\\(10^5\\) N", "\\(10^9\\) N"]
   })
 ];
 

@@ -127,17 +127,23 @@ export default function App() {
   const executeGeneration = () => {
     setIsLoading(true);
     setTimeout(() => {
-      const payload = {
-        qtypes,
-        hots,
-        chapters: selectedChapters,
-        difficulty,
-        blooms: selectedBlooms,
-        skills: selectedSkills
-      };
-      const generated = generateQuestionsOffline(payload);
-      setQuestions(generated);
-      setIsLoading(false);
+      try {
+        const payload = {
+          qtypes,
+          hots,
+          chapters: selectedChapters,
+          difficulty,
+          blooms: selectedBlooms,
+          skills: selectedSkills
+        };
+        const generated = generateQuestionsOffline(payload);
+        setQuestions(generated || []);
+      } catch (err) {
+        console.error('[App] Question generation failed:', err);
+        setQuestions([]);
+      } finally {
+        setIsLoading(false);
+      }
     }, 900);
   };
 
@@ -151,22 +157,28 @@ export default function App() {
   };
 
   const handleRedoQuestion = (globalIndex) => {
-    const oldQuestion = questions[globalIndex];
-    const newQuestion = generateSingleQuestion(
-      oldQuestion.type,
-      oldQuestion.hots,
-      oldQuestion.chapter,
-      difficulty,
-      selectedBlooms,
-      selectedSkills,
-      oldQuestion.marks
-    );
+    if (globalIndex < 0 || globalIndex >= questions.length) return;
+    try {
+      const oldQuestion = questions[globalIndex];
+      if (!oldQuestion) return;
+      const newQuestion = generateSingleQuestion(
+        oldQuestion.type,
+        oldQuestion.hots,
+        oldQuestion.chapter,
+        difficulty,
+        selectedBlooms,
+        selectedSkills,
+        oldQuestion.marks
+      );
 
-    setQuestions((prev) => {
-      const copy = [...prev];
-      copy[globalIndex] = newQuestion;
-      return copy;
-    });
+      setQuestions((prev) => {
+        const copy = [...prev];
+        copy[globalIndex] = newQuestion;
+        return copy;
+      });
+    } catch (err) {
+      console.error('[App] Failed to redo question:', err);
+    }
   };
 
   return (

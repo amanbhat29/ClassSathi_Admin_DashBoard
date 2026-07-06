@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { SKILLS, BLOOMS } from '../data/curriculum';
 import { calculateTotals, calculateHotsCount } from '../utils/helpers';
 import UploadTemplateButton from '../components/UploadTemplateButton';
-import UploadTemplateModal from '../components/UploadTemplateModal';
+import PaperTemplateModal from '../components/PaperTemplateModal';
 
 export default function Step2PaperStructure({
   examName,
@@ -150,7 +150,7 @@ export default function Step2PaperStructure({
 
           <UploadTemplateButton onClick={() => setIsTemplateOpen(true)} />
 
-          <UploadTemplateModal
+          <PaperTemplateModal
             isOpen={isTemplateOpen}
             onClose={() => setIsTemplateOpen(false)}
           />

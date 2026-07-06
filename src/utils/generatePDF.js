@@ -7,6 +7,7 @@ import html2pdf from 'html2pdf.js';
  *
  * @param {string} elementId - The DOM ID of the element to export.
  * @param {string} filename - The name of the generated PDF file.
+ * @param {Object} options - PDF custom configurations (margin, themeColor, isDocx)
  * @returns {Promise<Blob>} Resolves with the generated PDF Blob
  */
 export function generatePDF(elementId, filename = 'exam-paper.pdf', options = {}) {
@@ -19,8 +20,14 @@ export function generatePDF(elementId, filename = 'exam-paper.pdf', options = {}
   // Add the CSS helper class to body to toggle visibility and layout styles for PDF printing
   document.body.classList.add('is-generating-pdf');
 
+  // Determine page break rules (break before every true page wrapper)
+  const pagebreakConfig = { mode: 'before', before: '.paper' };
+
+  // Determine margins (0 for true paginated preview to avoid double margins)
+  const marginConfig = [0, 0, 0, 0];
+
   const opt = {
-    margin: [15, 15, 15, 15], // Top, Left, Bottom, Right margin in mm
+    margin: marginConfig,
     filename: filename,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: {
@@ -34,10 +41,7 @@ export function generatePDF(elementId, filename = 'exam-paper.pdf', options = {}
       format: 'a4',
       orientation: 'portrait'
     },
-    pagebreak: {
-      mode: ['css', 'legacy'],
-      avoid: ['.q-row', '.paper-section-title']
-    }
+    pagebreak: pagebreakConfig
   };
 
   return html2pdf()

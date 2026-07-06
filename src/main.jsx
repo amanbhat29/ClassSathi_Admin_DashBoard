@@ -3,12 +3,15 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import './print.css'
 import App from './App.jsx'
-import { TemplateProvider } from './context/TemplateContext'
+import { PaperTemplateProvider as TemplateProvider } from './contexts/PaperTemplateContext'
+import ErrorBoundary from './components/ErrorBoundary'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <TemplateProvider>
-      <App />
-    </TemplateProvider>
+    <ErrorBoundary>
+      <TemplateProvider>
+        <App />
+      </TemplateProvider>
+    </ErrorBoundary>
   </StrictMode>,
 )

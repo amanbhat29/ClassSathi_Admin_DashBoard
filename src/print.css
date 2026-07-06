@@ -75,6 +75,11 @@
   }
 
   /* Prevent question items from breaking across pages */
+  .q-row-wrapper {
+    display: block !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
   .q-row {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
@@ -153,6 +158,11 @@
 }
 
 /* Prevent question items from breaking across PDF pages */
+.is-generating-pdf .q-row-wrapper {
+  display: block !important;
+  break-inside: avoid !important;
+  page-break-inside: avoid !important;
+}
 .is-generating-pdf .q-row {
   break-inside: avoid !important;
   page-break-inside: avoid !important;
@@ -163,3 +173,50 @@
   break-after: avoid !important;
   page-break-after: avoid !important;
 }
+
+/* ============ DYNAMIC WORD TEMPLATE PRINTING RULES ============ */
+@media print {
+  .docx-preview-container {
+    background: none !important;
+    background-color: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+    width: 100% !important;
+  }
+  
+  .docx-preview-container > section {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 2.5cm !important; /* Standard Word margins if not overridden */
+    page-break-after: always !important;
+    break-after: always !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    width: 100% !important;
+    background: #fff !important;
+  }
+}
+
+.is-generating-pdf .docx-preview-container {
+  background: none !important;
+  background-color: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: block !important;
+  width: 100% !important;
+}
+
+.is-generating-pdf .docx-preview-container > section {
+  box-shadow: none !important;
+  border: none !important;
+  margin: 0 !important;
+  page-break-after: always !important;
+  break-after: always !important;
+  break-inside: avoid !important;
+  page-break-inside: avoid !important;
+  width: 100% !important;
+  background: #fff !important;
+}
+
