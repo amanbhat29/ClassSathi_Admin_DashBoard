@@ -123,6 +123,10 @@ export class TemplateParser {
             text: item.str,
             x: item.transform[4],
             y: y,
+            width: item.width || 0,
+            height: item.height || Math.abs(item.transform[0]) || 0,
+            fontSize: Math.abs(item.transform[0]) || item.height || 12,
+            fontName: item.fontName || '',
             page: pageNum
           };
           

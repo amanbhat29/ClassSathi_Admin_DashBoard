@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { calculateTotals } from '../utils/helpers';
 import { useGeneratePDF } from '../hooks/useGeneratePDF';
 import PDFPreviewModal from '../components/pdf/PDFPreviewModal';
@@ -6,15 +6,75 @@ import { usePaperTemplate as useTemplate } from '../contexts/PaperTemplateContex
 import DocumentPreview from '../components/pdf/DocumentPreview';
 import LayoutEngine from '../utils/LayoutEngine';
 import LatexRenderer from '../components/LatexRenderer';
+import * as pdfjs from 'pdfjs-dist';
+import pdfjsWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
-// Section display names keyed by question type ID
-const SECTION_NAMES = {
-  mcq: "Section A — Multiple Choice Questions",
-  vsa: "Section B — Very Short Answer Questions",
-  sa: "Section C — Short Answer Questions",
-  la: "Section D — Long Answer Questions"
-};
+if (typeof window !== 'undefined' && !pdfjs.GlobalWorkerOptions.workerSrc) {
+  pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl;
+}
 
+function PdfBackground({ base64, pageNum }) {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    if (!base64 || !canvasRef.current) return;
+    let isMounted = true;
+
+    async function renderPage() {
+      try {
+        const binaryString = atob(base64);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+
+        const loadingTask = pdfjs.getDocument({ data: bytes });
+        const pdf = await loadingTask.promise;
+        if (!isMounted) return;
+
+        const page = await pdf.getPage(pageNum);
+        if (!isMounted || !canvasRef.current) return;
+
+        const canvas = canvasRef.current;
+        const context = canvas.getContext('2d');
+        const viewport = page.getViewport({ scale: 1.5 }); // High-res
+
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        const renderContext = {
+          canvasContext: context,
+          viewport: viewport
+        };
+        await page.render(renderContext).promise;
+      } catch (err) {
+        console.error("[PdfBackground] Error rendering PDF background page:", err);
+      }
+    }
+
+    renderPage();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [base64, pageNum]);
+
+  return (
+    <canvas 
+      ref={canvasRef} 
+      style={{ 
+        position: 'absolute', 
+        top: 0, 
+        left: 0, 
+        width: '100%', 
+        height: '100%', 
+        zIndex: 1, 
+        pointerEvents: 'none' 
+      }} 
+    />
+  );
+}
 export default function Step3PreviewPrint({
   isLoading,
   examName,
@@ -171,7 +231,6 @@ export default function Step3PreviewPrint({
   const {
     pdfBlob,
     isGenerating,
-    generate,
     clearBlob
   } = useGeneratePDF();
 
@@ -182,6 +241,7 @@ export default function Step3PreviewPrint({
   }, [clearBlob]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     clearBlobs();
   }, [questions, clearBlobs]);
 
@@ -191,74 +251,22 @@ export default function Step3PreviewPrint({
     
     // Only compile if template is ready (exactly 1 placeholder and valid structure)
     if (uploadedFile && validationStatus?.ready && templateBinary && safeQuestions.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDocxLoading(true);
       setDocxError(null);
 
       const timer = setTimeout(() => {
-        const payload = {
-          schoolName: template.schoolName,
-          schoolAddress: template.schoolAddress,
-          phone: template.phone,
-          email: template.email,
-          website: template.website,
-          academicYear: template.academicYear,
-          footerText: template.footerText,
-          examName,
-          duration,
-          subject,
-          grade,
-          maxMarks: totalMarks,
-          selectedChapters
-        };
+
 
         const isPdf = uploadedFile.type === 'pdf';
 
-        if (isPdf) {
-          // Dynamic import of QuestionInjector to compile PDF Template
-          import('../utils/QuestionInjector').then(async ({ QuestionInjector }) => {
-            try {
-              // Decode base64 to Uint8Array
-              const binaryString = atob(templateBinary);
-              const len = binaryString.length;
-              const bytes = new Uint8Array(len);
-              for (let i = 0; i < len; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-              }
-
-              const modifiedBytes = await QuestionInjector.injectQuestionsPdf(
-                bytes,
-                safeQuestions,
-                qtypes,
-                validationStatus.placeholderDetails
-              );
-
-              // Convert back to Base64
-              let modifiedBinaryString = "";
-              const modifiedLen = modifiedBytes.byteLength;
-              const chunkSize = 65536;
-              for (let i = 0; i < modifiedLen; i += chunkSize) {
-                const subArray = modifiedBytes.subarray(i, i + chunkSize);
-                modifiedBinaryString += String.fromCharCode.apply(null, subArray);
-              }
-              const modifiedBase64 = btoa(modifiedBinaryString);
-
-              if (isMounted) {
-                saveGeneratedPreview(modifiedBase64);
-              }
-            } catch (err) {
-              console.error("[Step3] PDF Template injection failed:", err);
-              if (isMounted) {
-                setDocxError(err.message || "Failed to inject questions into PDF template.");
-              }
-            } finally {
-              if (isMounted) {
-                setDocxLoading(false);
-              }
-            }
-          });
-        } else {
-          // Dynamically import DocumentEngine to parse and compile DOCX DOM safely
-          import('../utils/engine/DocumentEngine').then(async ({ DocumentEngine }) => {
+        // Dynamically import DocumentEngine to parse and compile DOCX DOM safely.
+        // PDF templates are adapted into the same DOCX placeholder contract first,
+        // so question rendering, pagination, preview and exports stay shared.
+        Promise.all([
+          import('../utils/engine/DocumentEngine'),
+          isPdf ? import('../utils/PdfTemplateAdapter') : Promise.resolve(null)
+        ]).then(async ([{ DocumentEngine }, pdfAdapterModule]) => {
             try {
               // Decode base64 template to arrayBuffer
               const binaryString = atob(templateBinary);
@@ -268,8 +276,12 @@ export default function Step3PreviewPrint({
                 bytes[i] = binaryString.charCodeAt(i);
               }
 
+              const sourceTemplateBuffer = isPdf
+                ? await pdfAdapterModule.PdfTemplateAdapter.toDocxTemplate(bytes.buffer)
+                : bytes.buffer;
+
               const modifiedArrayBuffer = await DocumentEngine.generateDocx(
-                bytes.buffer,
+                sourceTemplateBuffer,
                 safeQuestions,
                 qtypes
               );
@@ -290,7 +302,7 @@ export default function Step3PreviewPrint({
                 saveGeneratedPreview(modifiedBase64);
               }
             } catch (err) {
-              console.error("[Step3] Word Document compilation failed:", err);
+              console.error("[Step3] Template compilation failed:", err);
               if (isMounted) {
                 setDocxError(err.message || "Failed to inject questions or compile template variables.");
               }
@@ -300,7 +312,6 @@ export default function Step3PreviewPrint({
               }
             }
           });
-        }
       }, 50);
 
       return () => {
@@ -380,7 +391,7 @@ export default function Step3PreviewPrint({
       
       import('../utils/DocumentRenderer').then(({ DocumentRenderer }) => {
         DocumentRenderer.exportDocx(
-          uploadedFile?.type,
+          'docx',
           generatedPreview,
           safeQuestions,
           qtypes,
@@ -488,7 +499,7 @@ export default function Step3PreviewPrint({
 
         {isCustomTemplate ? (
           <DocumentPreview 
-            type={uploadedFile.type} 
+            type="docx" 
             base64={generatedPreview} 
           />
         ) : (
@@ -520,9 +531,41 @@ export default function Step3PreviewPrint({
               selectedChapters
             };
             
-            // Generate mathematically paginated pages using LayoutEngine
-            const paginatedPages = LayoutEngine.paginate(safeQuestions, safeQtypes, payload);
-            
+            const isPdfTemplate = uploadedFile?.type === 'pdf' && validationStatus?.ready && templateBinary;
+
+            let paginatedPages;
+            let totalPagesCount;
+            let placeholderPageIdx = 0;
+            let templatePagesCount = 0;
+            let pageHeight = 841.89;
+            let pageWidth = 595.28;
+            let placeholderY = 0;
+            let topPercent = 0;
+            let bottomPercent = 0;
+
+            if (isPdfTemplate) {
+              const details = validationStatus.placeholderDetails;
+              pageHeight = details.pageHeight || 841.89;
+              pageWidth = details.pageWidth || 595.28;
+              placeholderY = details.y || 0;
+              placeholderPageIdx = details.pageIndex - 1;
+              templatePagesCount = validationStatus.pages || 1;
+
+              const placeholderOffset = pageHeight - placeholderY;
+              paginatedPages = LayoutEngine.paginate(safeQuestions, safeQtypes, payload, {
+                isPdfTemplate: true,
+                placeholderOffset: placeholderOffset
+              });
+
+              totalPagesCount = Math.max(templatePagesCount, placeholderPageIdx + paginatedPages.length);
+              
+              topPercent = ((pageHeight - placeholderY) / pageHeight) * 100;
+              bottomPercent = (55 / pageHeight) * 100;
+            } else {
+              paginatedPages = LayoutEngine.paginate(safeQuestions, safeQtypes, payload);
+              totalPagesCount = paginatedPages.length;
+            }
+
             let globalQIndex = 0;
 
             return (
@@ -538,220 +581,352 @@ export default function Step3PreviewPrint({
                   gap: '20px' 
                 }}
               >
-                {paginatedPages.map((pageItems, pageIdx) => {
-                  const isFirstPage = pageIdx === 0;
-                  const isLastPage = pageIdx === paginatedPages.length - 1;
+                {Array.from({ length: totalPagesCount }).map((_, pageIdx) => {
+                  if (isPdfTemplate) {
+                    const backgroundPageNum = pageIdx < templatePagesCount ? pageIdx + 1 : placeholderPageIdx + 1;
+                    const qPageIdx = pageIdx - placeholderPageIdx;
+                    const hasQuestions = qPageIdx >= 0 && qPageIdx < paginatedPages.length;
 
-                  return (
-                    <div 
-                      key={pageIdx} 
-                      className={`paper theme-${template.themeColor} docx-rendered`} 
-                      style={{ 
-                        position: 'relative', 
-                        overflow: 'hidden', 
-                        ...watermarkStyle,
-                        width: '816px',
-                        height: '1154px',
-                        boxSizing: 'border-box',
-                        padding: '20mm 15mm',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                        backgroundColor: '#fff',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        border: '1px solid #ddd'
-                      }}
-                    >
-                      {/* Page Content Area */}
-                      <div style={{ flex: 1 }}>
-                        {isFirstPage && (
-                          template.headerTemplate ? (
-                            <div className="paper-custom-header" style={{ width: '100%', marginBottom: '14px' }}>
-                              <img 
-                                src={template.headerTemplate} 
-                                alt="Custom Header" 
-                                style={{ width: '100%', maxHeight: '120px', objectFit: 'contain', display: 'block' }} 
-                              />
-                              <div className="paper-meta" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px', fontWeight: 700, borderBottom: `2px solid var(--paper-theme, var(--green))`, paddingBottom: '8px' }}>
-                                <span>Time allowed: {duration}</span>
-                                <span>Maximum marks: {totalMarks}</span>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="paper-head">
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', marginBottom: '8px' }}>
-                                {template.logo && (
-                                  <img 
-                                    src={template.logo} 
-                                    className="paper-logo" 
-                                    alt="Logo" 
-                                    style={{ width: '48px', height: '48px', objectFit: 'contain' }} 
-                                  />
+                    return (
+                      <div 
+                        key={pageIdx} 
+                        className={`paper theme-${template.themeColor} docx-rendered`} 
+                        style={{ 
+                          position: 'relative', 
+                          overflow: 'hidden', 
+                          width: '816px',
+                          height: '1154px',
+                          boxSizing: 'border-box',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                          backgroundColor: '#fff',
+                          border: '1px solid #ddd',
+                          margin: '0 auto'
+                        }}
+                      >
+                        <PdfBackground base64={templateBinary} pageNum={backgroundPageNum} />
+
+                        {hasQuestions && (
+                          (() => {
+                            const pageItems = paginatedPages[qPageIdx];
+                            const isFirstQPage = qPageIdx === 0;
+                            const currentTopPercent = isFirstQPage ? topPercent : (55 / pageHeight) * 100;
+                            
+                            return (
+                              <div 
+                                style={{
+                                  position: 'absolute',
+                                  left: '55px',
+                                  right: '55px',
+                                  top: `${currentTopPercent}%`,
+                                  bottom: '55px',
+                                  zIndex: 2,
+                                  boxSizing: 'border-box',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  justifyContent: 'flex-start'
+                                }}
+                              >
+                                {pageItems.map((item, idx) => {
+                                  if (item.type === 'section_header') {
+                                    return (
+                                      <div key={idx} className="paper-section-title" style={{ marginTop: '14px', breakAfter: 'avoid' }}>
+                                        <span>{item.title}</span>
+                                        <span>{item.marksLabel}</span>
+                                      </div>
+                                    );
+                                  } else {
+                                    globalQIndex++;
+                                    const q = item.q;
+                                    const originalIdx = safeQuestions.findIndex(sq => sq.id === q.id || (sq.text === q.text && sq.chapter === q.chapter));
+                                    const finalRedoIndex = originalIdx !== -1 ? originalIdx : globalQIndex - 1;
+                                    const questionText = q.questionTxt || q.questionTxtM || q.text || '';
+                                    const choicesList = q.choices || q.choicesM || q.options || null;
+
+                                    return (
+                                      <div key={idx} className="q-row-wrapper">
+                                        <div className="q-row">
+                                          <div className="q-body-col">
+                                            <div className="q-num">Q{globalQIndex}.</div>
+                                            <div className="q-text">
+                                              <LatexRenderer text={questionText} />
+                                              {choicesList && (
+                                                <div className="q-opts">
+                                                  {choicesList.map((opt, optIdx) => (
+                                                    <span key={optIdx}>
+                                                      ({"abcd"[optIdx]}) <LatexRenderer text={opt} />
+                                                    </span>
+                                                  ))}
+                                                </div>
+                                              )}
+                                              <div className="q-tags">
+                                                <span className={`q-tag ${q.hots ? 'hots' : 'lots'}`}>
+                                                  {q.hots ? 'HOTS' : 'LOTS'} · {q.level}
+                                                </span>
+                                                <span className="q-tag chapter">{q.chapter}</span>
+                                              </div>
+                                            </div>
+                                          </div>
+                                          <div className="q-marks-col">
+                                            <div className="q-marks-val">[{q.marks}]</div>
+                                            <button
+                                              type="button"
+                                              className="q-redo"
+                                              title="Replace this question"
+                                              onClick={() => onRedoQuestion(finalRedoIndex)}
+                                            >
+                                              ↻
+                                            </button>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  }
+                                })}
+
+                                {qPageIdx === paginatedPages.length - 1 && (
+                                  <div className="paper-footer" style={{ marginTop: 'auto', paddingTop: '10px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', padding: '0 20px' }}>
+                                      <div style={{ textAlign: 'center' }}>
+                                        <div style={{ fontSize: '10.5px', borderTop: '1px solid var(--border)', width: '120px', paddingTop: '2px', color: 'var(--ink-soft)', fontWeight: '600' }}>
+                                          Teacher Signature
+                                        </div>
+                                      </div>
+                                      <div style={{ textAlign: 'center' }}>
+                                        <div style={{ fontSize: '10.5px', borderTop: '1px solid var(--border)', width: '120px', paddingTop: '2px', color: 'var(--ink-soft)', fontWeight: '600' }}>
+                                          Principal Signature
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div style={{
+                                      fontSize: '11px',
+                                      color: 'var(--ink-mute)',
+                                      textAlign: 'center',
+                                      fontWeight: '600',
+                                      marginTop: '8px'
+                                    }}>
+                                      <span>Page {pageIdx + 1} of {totalPagesCount}</span>
+                                    </div>
+                                  </div>
                                 )}
-                                <div style={{ textAlign: 'center' }}>
-                                  <div className="paper-school">{template.schoolName || 'Delhi Public School, Dwarka'}</div>
-                                  {template.schoolAddress && (
-                                    <div style={{ fontSize: '11px', color: 'var(--ink-mute)', marginTop: '2px', fontWeight: '500' }}>
-                                      {template.schoolAddress}
-                                    </div>
+                              </div>
+                            );
+                          })()
+                        )}
+                      </div>
+                    );
+                  } else {
+                    const isFirstPage = pageIdx === 0;
+                    const isLastPage = pageIdx === paginatedPages.length - 1;
+                    const pageItems = paginatedPages[pageIdx];
+
+                    return (
+                      <div 
+                        key={pageIdx} 
+                        className={`paper theme-${template.themeColor} docx-rendered`} 
+                        style={{ 
+                          position: 'relative', 
+                          overflow: 'hidden', 
+                          ...watermarkStyle,
+                          width: '816px',
+                          height: '1154px',
+                          boxSizing: 'border-box',
+                          padding: '55px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                          backgroundColor: '#fff',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          border: '1px solid #ddd'
+                        }}
+                      >
+                        <div style={{ flex: 1 }}>
+                          {isFirstPage && (
+                            template.headerTemplate ? (
+                              <div className="paper-custom-header" style={{ width: '100%', marginBottom: '14px' }}>
+                                <img 
+                                  src={template.headerTemplate} 
+                                  alt="Custom Header" 
+                                  style={{ width: '100%', maxHeight: '110px', objectFit: 'contain', display: 'block' }} 
+                                />
+                              </div>
+                            ) : (
+                              <div className="paper-head">
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', marginBottom: '8px' }}>
+                                  {template.logo && (
+                                    <img 
+                                      src={template.logo} 
+                                      className="paper-logo" 
+                                      alt="Logo" 
+                                      style={{ width: '48px', height: '48px', objectFit: 'contain' }} 
+                                    />
                                   )}
-                                  {(template.phone || template.email || template.website) && (
-                                    <div style={{ fontSize: '10.5px', color: 'var(--ink-mute)', fontWeight: '500' }}>
-                                      {template.phone && `Tel: ${template.phone}`} {template.email && `· Email: ${template.email}`} {template.website && `· Web: ${template.website}`}
-                                    </div>
-                                  )}
+                                  <div style={{ textAlign: 'center' }}>
+                                    <div className="paper-school">{template.schoolName || 'Delhi Public School, Dwarka'}</div>
+                                    {template.schoolAddress && (
+                                      <div style={{ fontSize: '11px', color: 'var(--ink-mute)', marginTop: '2px', fontWeight: '500' }}>
+                                        {template.schoolAddress}
+                                      </div>
+                                    )}
+                                    {(template.phone || template.email || template.website) && (
+                                      <div style={{ fontSize: '10.5px', color: 'var(--ink-mute)', fontWeight: '500' }}>
+                                        {template.phone && `Tel: ${template.phone}`} {template.email && `· Email: ${template.email}`} {template.website && `· Web: ${template.website}`}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="paper-exam" style={{ borderTop: '1px dashed var(--border)', paddingTop: '6px' }}>
+                                  {examName} · {subject} · Grade {grade} (Academic Year {template.academicYear})
+                                </div>
+                                <div className="paper-meta">
+                                  <span>Time allowed: {duration}</span>
+                                  <span>Maximum marks: {totalMarks}</span>
                                 </div>
                               </div>
-                              <div className="paper-exam" style={{ borderTop: '1px dashed var(--border)', paddingTop: '6px' }}>
-                                {examName} · {subject} · Grade {grade} (Academic Year {template.academicYear})
+                            )
+                          )}
+
+                          {isFirstPage && (
+                            <div className="paper-instructions">
+                              <b>General instructions:</b> All questions are compulsory. Marks for each question are shown on the right. Write neatly and show your working where needed. Chapters covered: {selectedChapters.join(', ')}.
+                            </div>
+                          )}
+
+                          {pageItems.map((item, idx) => {
+                            if (item.type === 'section_header') {
+                              return (
+                                <div key={idx} className="paper-section-title" style={{ marginTop: '14px', breakAfter: 'avoid' }}>
+                                  <span>{item.title}</span>
+                                  <span>{item.marksLabel}</span>
+                                </div>
+                              );
+                            } else {
+                              globalQIndex++;
+                              const q = item.q;
+                              const originalIdx = safeQuestions.findIndex(sq => sq.id === q.id || (sq.text === q.text && sq.chapter === q.chapter));
+                              const finalRedoIndex = originalIdx !== -1 ? originalIdx : globalQIndex - 1;
+                              const questionText = q.questionTxt || q.questionTxtM || q.text || '';
+                              const choicesList = q.choices || q.choicesM || q.options || null;
+
+                              return (
+                                <div key={idx} className="q-row-wrapper">
+                                  <div className="q-row">
+                                    <div className="q-body-col">
+                                      <div className="q-num">Q{globalQIndex}.</div>
+                                      <div className="q-text">
+                                        <LatexRenderer text={questionText} />
+                                        {choicesList && (
+                                          <div className="q-opts">
+                                            {choicesList.map((opt, optIdx) => (
+                                              <span key={optIdx}>
+                                                ({"abcd"[optIdx]}) <LatexRenderer text={opt} />
+                                              </span>
+                                            ))}
+                                          </div>
+                                        )}
+
+                                        <div className="q-tags">
+                                          <span className={`q-tag ${q.hots ? 'hots' : 'lots'}`}>
+                                            {q.hots ? 'HOTS' : 'LOTS'} · {q.level}
+                                          </span>
+                                          <span className="q-tag chapter">{q.chapter}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div className="q-marks-col">
+                                      <div className="q-marks-val">[{q.marks}]</div>
+                                      <button
+                                        type="button"
+                                        className="q-redo"
+                                        title="Replace this question"
+                                        onClick={() => onRedoQuestion(finalRedoIndex)}
+                                      >
+                                        ↻
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            }
+                          })}
+                        </div>
+
+                        {isLastPage ? (
+                          template.footerTemplate ? (
+                            <div className="paper-custom-footer" style={{ width: '100%', marginTop: '16px' }}>
+                              <img 
+                                src={template.footerTemplate} 
+                                alt="Custom Footer" 
+                                style={{ width: '100%', maxHeight: '70px', objectFit: 'contain', display: 'block' }} 
+                              />
+                            </div>
+                          ) : (
+                            <div className="paper-footer" style={{ marginTop: '16px', borderTop: '1.5px dashed var(--border)', paddingTop: '10px' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '10px', padding: '0 20px' }}>
+                                <div style={{ textAlign: 'center' }}>
+                                  {template.stamp && (
+                                    <img 
+                                      src={template.stamp} 
+                                      className="paper-seal" 
+                                      alt="Seal" 
+                                      style={{ width: '56px', height: '56px', objectFit: 'contain', display: 'block', margin: '0 auto 2px' }} 
+                                    />
+                                  )}
+                                  <div style={{ fontSize: '10.5px', borderTop: '1px solid var(--border)', width: '120px', paddingTop: '2px', color: 'var(--ink-soft)', fontWeight: '600' }}>
+                                    School Seal / Stamp
+                                  </div>
+                                </div>
+
+                                <div style={{ textAlign: 'center' }}>
+                                  {template.signature && (
+                                    <img 
+                                      src={template.signature} 
+                                      className="paper-signature" 
+                                      alt="Signature" 
+                                      style={{ height: '32px', objectFit: 'contain', display: 'block', margin: '0 auto 2px' }} 
+                                    />
+                                  )}
+                                  <div style={{ fontSize: '10.5px', borderTop: '1px solid var(--border)', width: '120px', paddingTop: '2px', color: 'var(--ink-soft)', fontWeight: '600' }}>
+                                    Principal
+                                  </div>
+                                </div>
                               </div>
-                              <div className="paper-meta">
-                                <span>Time allowed: {duration}</span>
-                                <span>Maximum marks: {totalMarks}</span>
+
+                              <div style={{
+                                fontSize: '11px',
+                                color: 'var(--ink-mute)',
+                                textAlign: template.footerAlignment || 'center',
+                                fontWeight: '600',
+                                marginTop: '4px',
+                                display: 'flex',
+                                justifyContent: 'space-between'
+                              }}>
+                                <span>{template.footerText || 'Confidential Examination Paper'}</span>
+                                <span>Page {pageIdx + 1} of {paginatedPages.length}</span>
                               </div>
                             </div>
                           )
-                        )}
-
-                        {isFirstPage && (
-                          <div className="paper-instructions">
-                            <b>General instructions:</b> All questions are compulsory. Marks for each question are shown on the right. Write neatly and show your working where needed. Chapters covered: {selectedChapters.join(', ')}.
-                          </div>
-                        )}
-
-                        {pageItems.map((item, idx) => {
-                          if (item.type === 'section_header') {
-                            return (
-                              <div key={idx} className="paper-section-title" style={{ marginTop: '14px', breakAfter: 'avoid' }}>
-                                <span>{item.title}</span>
-                                <span>{item.marksLabel}</span>
-                              </div>
-                            );
-                          } else {
-                            globalQIndex++;
-                            const q = item.q;
-                            // Retrieve the actual original index of the question to redo correctly
-                            const originalIdx = safeQuestions.findIndex(sq => sq.id === q.id || (sq.text === q.text && sq.chapter === q.chapter));
-                            const finalRedoIndex = originalIdx !== -1 ? originalIdx : globalQIndex - 1;
-                            const questionText = q.questionTxt || q.questionTxtM || q.text || '';
-                            const questionDesc = q.questionDescription || q.questionDescriptionM || q.description || '';
-                            const choicesList = q.choices || q.choicesM || q.options || null;
-
-                            return (
-                              <div key={idx} className="q-row-wrapper">
-                                <div className="q-row">
-                                  <div className="q-num">Q{globalQIndex}.</div>
-                                  <div className="q-text">
-                                    <LatexRenderer text={questionText} />
-                                    {choicesList && (
-                                      <div className="q-opts">
-                                        {choicesList.map((opt, optIdx) => (
-                                          <span key={optIdx}>
-                                            ({"abcd"[optIdx]}) <LatexRenderer text={opt} />
-                                          </span>
-                                        ))}
-                                      </div>
-                                    )}
-
-                                    <div className="q-tags">
-                                      <span className={`q-tag ${q.hots ? 'hots' : 'lots'}`}>
-                                        {q.hots ? 'HOTS' : 'LOTS'} · {q.level}
-                                      </span>
-                                      <span className="q-tag chapter">{q.chapter}</span>
-                                    </div>
-                                  </div>
-                                  <div className="q-marks">[{q.marks}]</div>
-                                  <button
-                                    type="button"
-                                    className="q-redo"
-                                    title="Replace this question"
-                                    onClick={() => onRedoQuestion(finalRedoIndex)}
-                                  >
-                                    ↻
-                                  </button>
-                                </div>
-                              </div>
-                            );
-                          }
-                        })}
-                      </div>
-
-                      {/* Footer signatures and seal area at the bottom of pages */}
-                      {isLastPage ? (
-                        template.footerTemplate ? (
-                          <div className="paper-custom-footer" style={{ width: '100%', marginTop: '16px' }}>
-                            <img 
-                              src={template.footerTemplate} 
-                              alt="Custom Footer" 
-                              style={{ width: '100%', maxHeight: '70px', objectFit: 'contain', display: 'block' }} 
-                            />
-                          </div>
                         ) : (
-                          <div className="paper-footer" style={{ marginTop: '16px', borderTop: '1.5px dashed var(--border)', paddingTop: '10px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '10px', padding: '0 20px' }}>
-                              <div style={{ textAlign: 'center' }}>
-                                {template.stamp && (
-                                  <img 
-                                    src={template.stamp} 
-                                    className="paper-seal" 
-                                    alt="Seal" 
-                                    style={{ width: '56px', height: '56px', objectFit: 'contain', display: 'block', margin: '0 auto 2px' }} 
-                                  />
-                                )}
-                                <div style={{ fontSize: '10.5px', borderTop: '1px solid var(--border)', width: '120px', paddingTop: '2px', color: 'var(--ink-soft)', fontWeight: '600' }}>
-                                  School Seal / Stamp
-                                </div>
-                              </div>
-
-                              <div style={{ textAlign: 'center' }}>
-                                {template.signature && (
-                                  <img 
-                                    src={template.signature} 
-                                    className="paper-signature" 
-                                    alt="Signature" 
-                                    style={{ height: '32px', objectFit: 'contain', display: 'block', margin: '0 auto 2px' }} 
-                                  />
-                                )}
-                                <div style={{ fontSize: '10.5px', borderTop: '1px solid var(--border)', width: '120px', paddingTop: '2px', color: 'var(--ink-soft)', fontWeight: '600' }}>
-                                  Principal
-                                </div>
-                              </div>
-                            </div>
-
-                            <div style={{
+                          <div 
+                            className="paper-footer" 
+                            style={{ 
                               fontSize: '11px',
                               color: 'var(--ink-mute)',
-                              textAlign: template.footerAlignment || 'center',
+                              borderTop: '1px solid var(--border)',
+                              paddingTop: '6px',
                               fontWeight: '600',
-                              marginTop: '4px',
                               display: 'flex',
-                              justifyContent: 'space-between'
-                            }}>
-                              <span>{template.footerText || 'Confidential Examination Paper'}</span>
-                              <span>Page {pageIdx + 1} of {paginatedPages.length}</span>
-                            </div>
+                              justifyContent: 'space-between',
+                              marginTop: '16px'
+                            }}
+                          >
+                            <span>{template.footerText || 'Confidential Examination Paper'}</span>
+                            <span>Page {pageIdx + 1} of {paginatedPages.length}</span>
                           </div>
-                        )
-                      ) : (
-                        <div 
-                          className="paper-footer" 
-                          style={{ 
-                            fontSize: '11px',
-                            color: 'var(--ink-mute)',
-                            borderTop: '1px solid var(--border)',
-                            paddingTop: '6px',
-                            fontWeight: '600',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            marginTop: '16px'
-                          }}
-                        >
-                          <span>{template.footerText || 'Confidential Examination Paper'}</span>
-                          <span>Page {pageIdx + 1} of {paginatedPages.length}</span>
-                        </div>
-                      )}
-                    </div>
-                  );
+                        )}
+                      </div>
+                    );
+                  }
                 })}
               </div>
             );

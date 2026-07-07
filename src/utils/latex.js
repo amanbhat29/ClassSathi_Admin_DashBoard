@@ -48,6 +48,7 @@ const mathCommandMap = {
   'geq': { unicode: '≥', ascii: '>=' },
   'infty': { unicode: '∞', ascii: 'infinity' },
   'degree': { unicode: '°', ascii: '°' },
+  'circ': { unicode: '°', ascii: '°' },
   'Delta': { unicode: 'Δ', ascii: 'Delta' }
 };
 
@@ -58,6 +59,12 @@ const mathCommandMap = {
 export function convertMathToText(mathStr, mode = 'unicode') {
   if (!mathStr) return '';
   let str = mathStr.trim();
+
+  // Pre-process degree symbol variations
+  str = str.replace(/\\degree/g, '°');
+  str = str.replace(/\^\\circ/g, '°');
+  str = str.replace(/\\circ/g, '°');
+  str = str.replace(/\^°/g, '°');
 
   // 1. Handle fractions: \frac{A}{B} -> A/B
   const fracRegex = /\\frac\s*{(.*?)}{(.*?)}/g;
@@ -89,7 +96,7 @@ export function convertMathToText(mathStr, mode = 'unicode') {
     }
   });
 
-  const superSingleRegex = /\^([0-9a-zA-Z\-\+])/g;
+  const superSingleRegex = /\^([0-9a-zA-Z\-+])/g;
   str = str.replace(superSingleRegex, (match, p1) => {
     if (mode === 'unicode') {
       return unicodeSuperscripts[p1] || `^${p1}`;
@@ -112,7 +119,7 @@ export function convertMathToText(mathStr, mode = 'unicode') {
     }
   });
 
-  const subSingleRegex = /_([0-9a-zA-Z\-\+])/g;
+  const subSingleRegex = /_([0-9a-zA-Z\-+])/g;
   str = str.replace(subSingleRegex, (match, p1) => {
     if (mode === 'unicode') {
       return unicodeSubscripts[p1] || `_${p1}`;
@@ -155,7 +162,7 @@ export function parseLatexToText(text, mode = 'unicode') {
     if (part.startsWith('\\(') && part.endsWith('\\)')) {
       const math = part.slice(2, -2);
       return convertMathToText(math, mode);
-    } else if (part.startsWith('\\\[') && part.endsWith('\\\]')) {
+    } else if (part.startsWith('\\[') && part.endsWith('\\]')) {
       const math = part.slice(2, -2);
       return convertMathToText(math, mode);
     }
@@ -168,9 +175,17 @@ export function parseLatexToText(text, mode = 'unicode') {
  */
 export function parseLatexToHtml(text) {
   if (!text) return '';
+
+  // Pre-process degree symbol variations for KaTeX
+  let processedText = text;
+  processedText = processedText.replace(/\\degree/g, '^{\\circ}');
+  processedText = processedText.replace(/\^\\circ/g, '^{\\circ}');
+  processedText = processedText.replace(/\\circ/g, '\\circ');
+  processedText = processedText.replace(/°/g, '^{\\circ}');
+
   const regex = /(\\\[[\s\S]*?\\\])|(\\\([\s\S]*?\\\))/g;
 
-  return text.split(regex).map(part => {
+  return processedText.split(regex).map(part => {
     if (!part) return '';
     if (part.startsWith('\\(') && part.endsWith('\\)')) {
       const math = part.slice(2, -2);
@@ -180,7 +195,7 @@ export function parseLatexToHtml(text) {
         console.error("[Latex] Inline render failed for:", math, err);
         return part;
       }
-    } else if (part.startsWith('\\\[') && part.endsWith('\\\]')) {
+    } else if (part.startsWith('\\[') && part.endsWith('\\]')) {
       const math = part.slice(2, -2);
       try {
         return katex.renderToString(math, { displayMode: true, throwOnError: false });

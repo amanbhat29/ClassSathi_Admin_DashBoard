@@ -14,20 +14,25 @@ export const LayoutEngine = {
    * @param {Object} payload - Metadata payload (examName, grade, subject, schoolName, address, etc.)
    * @returns {Array} List of pages, where each page is an array of items to render.
    */
-  paginate(questions, qtypes, payload) {
+  paginate(questions, qtypes, payload, options = {}) {
     const pageWidth = 595.28;  // A4 width in points
     const pageHeight = 841.89; // A4 height in points
-    const topMargin = 54;      // 0.75 in
-    const bottomMargin = 54;   // 0.75 in
-    const leftMargin = 54;
-    const rightMargin = 54;
+    const topMargin = 55;      // 55pt margin
+    const bottomMargin = 55;   // 55pt margin
+    const leftMargin = 55;
+    const rightMargin = 55;
     const contentWidth = pageWidth - leftMargin - rightMargin;
     
     // Total printable height per page
     const maxContentHeight = pageHeight - topMargin - bottomMargin;
     
     // Spacing heights (in points)
-    const headerHeight = payload.headerTemplate ? 140 : 110; // First page header details
+    const isPdfTemplate = options.isPdfTemplate;
+    const placeholderOffset = options.placeholderOffset || topMargin;
+
+    const headerHeight = isPdfTemplate
+      ? Math.max(topMargin, placeholderOffset)
+      : (payload.headerTemplate ? 140 : 110); // First page header details
     const footerHeight = 40;  // Normal page numbering footer height
     const reservedSignatureHeight = 135; // Principal & Stamp signature block
     
@@ -104,16 +109,15 @@ export const LayoutEngine = {
       const choicesList = q.choices || q.choicesM || q.options || null;
       
       const numWidth = 32; // Estimated width for 'Q1. ' label
-      const marksWidth = 24; // Estimated width for '[5]' label
       
-      // Question text height
-      // First line is constrained by number and marks; subsequent lines wrap at contentWidth - 24
-      const firstLineMax = contentWidth - numWidth - marksWidth - 15;
-      const firstLineWords = questionText.split(' ');
+      // Two-column layout width calculation (Question column takes 86%)
+      const questionColWidth = contentWidth * 0.86;
+      
+      const firstLineMax = questionColWidth - numWidth;
       
       let charWidth = 10.5 * 0.48;
       let firstLineLimitChars = Math.floor(firstLineMax / charWidth);
-      let restLinesLimitChars = Math.floor((contentWidth - 24) / charWidth);
+      let restLinesLimitChars = Math.floor((questionColWidth - 24) / charWidth);
       
       let lines = 0;
       let lineLength = 0;
@@ -139,12 +143,12 @@ export const LayoutEngine = {
         choicesList.forEach((opt, idx) => {
           const cleanOpt = parseLatexToText(opt, 'unicode');
           const prefix = `(${"abcd"[idx]}) `;
-          const optLines = estimateLines(prefix + cleanOpt, contentWidth - 24, 10.5);
+          const optLines = estimateLines(prefix + cleanOpt, questionColWidth - 24, 10.5);
           optHeight += optLines * 14 + 3; // 14pt line height + 3pt option gap
         });
       }
 
-      return qTextHeight + optHeight + 8; // padding after question
+      return qTextHeight + optHeight + 12; // 12pt margin bottom after question
     }
     
     function wordsList(str) {

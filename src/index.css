@@ -538,17 +538,29 @@ input[type=range] {
 
 .q-row {
   display: flex;
-  gap: 10px;
-  padding: 11px 4px;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding-top: 2px;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
   border-bottom: 1px dashed #e9e8ee;
   font-size: 13.5px;
   line-height: 1.55;
+}
+
+.q-body-col {
+  display: flex;
+  flex: 0 0 86% !important;
+  max-width: 86% !important;
+  gap: 10px;
   align-items: flex-start;
+  box-sizing: border-box;
 }
 
 .q-num {
   font-weight: 800;
-  min-width: 26px;
+  min-width: 28px;
 }
 
 .q-text {
@@ -595,12 +607,43 @@ input[type=range] {
   color: var(--ink-mute);
 }
 
-.q-marks {
+.q-marks-col {
+  display: flex;
+  align-items: flex-start !important; /* Top-aligned */
+  gap: 8px;
+  flex: 0 0 14% !important;
+  max-width: 14% !important;
+  box-sizing: border-box;
+  padding-left: 25px !important; /* Ensure 25px gap between text and marks */
+}
+
+.q-marks-val {
   font-weight: 800;
   font-size: 12.5px;
-  min-width: 30px;
-  text-align: right;
+  width: 40px;
+  min-width: 40px;
+  text-align: left;
   color: var(--ink-soft);
+}
+
+.docx-preview-container section.docx-rendered {
+  overflow: hidden !important;
+  padding: 72px 96px !important;
+  box-sizing: border-box !important;
+}
+
+.docx-preview-container section.docx-rendered table,
+.docx-preview-container section.docx-rendered tr,
+.docx-preview-container section.docx-rendered td {
+  break-inside: avoid !important;
+  page-break-inside: avoid !important;
+  -webkit-column-break-inside: avoid !important;
+}
+
+.docx-preview-container section.docx-rendered table {
+  margin-bottom: 8px !important;
+  width: 100% !important;
+  max-width: 100% !important;
 }
 
 .q-redo {

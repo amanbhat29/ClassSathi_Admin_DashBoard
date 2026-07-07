@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { usePaperTemplate } from '../contexts/PaperTemplateContext';
 
 /**
  * UploadedFileCard Component
@@ -11,12 +12,14 @@ export default function UploadedFileCard({
   onFileSelect
 }) {
   const fileInputRef = useRef(null);
+  const { validationStatus } = usePaperTemplate();
 
   const handleReplaceClick = () => {
     fileInputRef.current?.click();
   };
 
   const isPdf = file.type === 'pdf' || file.name.endsWith('.pdf');
+  const isReady = validationStatus?.ready;
 
   return (
     <div className="file-card">
@@ -48,11 +51,22 @@ export default function UploadedFileCard({
       </div>
 
       <div className="file-card-status-container">
-        <div className="file-status-badge">
-          <span style={{ fontSize: '12px' }}>✓</span> {isPdf ? 'PDF Template Ready' : 'Word Template Ready'}
+        <div 
+          className={`file-status-badge ${isReady ? 'ready' : 'error'}`}
+          style={{
+            backgroundColor: isReady ? '#e6fcf5' : '#fff5f5',
+            color: isReady ? '#2f9e44' : '#e03131',
+            borderColor: isReady ? '#c3fae8' : '#ffc9c9'
+          }}
+        >
+          <span style={{ fontSize: '12px' }}>{isReady ? '✓' : '✗'}</span>{' '}
+          {isReady 
+            ? (isPdf ? 'PDF Template Ready' : 'Word Template Ready') 
+            : (isPdf ? 'PDF Template Invalid' : 'Word Template Invalid')
+          }
         </div>
-        <div style={{ fontSize: '11px', color: 'var(--ink-soft)', marginLeft: '4px', marginTop: '2px', fontWeight: '600' }}>
-          Waiting for Question Paper Generation
+        <div style={{ fontSize: '11px', color: isReady ? 'var(--ink-soft)' : 'var(--red)', marginLeft: '4px', marginTop: '2px', fontWeight: '600' }}>
+          {isReady ? 'Waiting for Question Paper Generation' : 'Fix compatibility issues to generate paper'}
         </div>
       </div>
 
