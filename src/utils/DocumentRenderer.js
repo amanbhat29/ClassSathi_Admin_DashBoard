@@ -1,5 +1,6 @@
 import { DocumentEngine } from './engine/DocumentEngine';
 import { ExportEngine } from './engine/ExportEngine';
+import { addDocxPageNumbers } from './PageNumbering';
 import JSZip from 'jszip';
 
 /**
@@ -92,7 +93,8 @@ jszip.file("[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalo
       arrayBuffer = await DocumentEngine.generateDocx(docxTemplateBuffer, questions, qtypes);
     }
 
-    ExportEngine.downloadDocx(arrayBuffer, payload.examName);
+    const numberedArrayBuffer = await addDocxPageNumbers(arrayBuffer);
+    ExportEngine.downloadDocx(numberedArrayBuffer, payload.examName);
   },
 
   /**
