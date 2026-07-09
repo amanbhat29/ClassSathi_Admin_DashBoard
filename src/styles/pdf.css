@@ -170,9 +170,18 @@
   to { transform: translateY(0); opacity: 1; }
 }
 
-/* Custom styles overrides for react-pdf-viewer core elements */
-.rpv-core__viewer {
-  background-color: #525659 !important;
+.pdf-native-viewer {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: #525659;
+}
+
+.pdf-native-frame {
+  flex: 1;
+  width: 100%;
+  border: none;
+  background-color: #ffffff;
 }
 
 /* ============ TEMPLATE SETTINGS MODAL ============ */

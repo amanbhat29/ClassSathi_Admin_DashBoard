@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { calculateTotals } from '../utils/helpers';
-import { useGeneratePDF } from '../hooks/useGeneratePDF';
 import PDFPreviewModal from '../components/pdf/PDFPreviewModal';
 import { usePaperTemplate as useTemplate } from '../contexts/PaperTemplateContext';
 import DocumentPreview from '../components/pdf/DocumentPreview';
 import LayoutEngine from '../utils/LayoutEngine';
 import LatexRenderer from '../components/LatexRenderer';
+import { convertGeneratedDocxToPdf } from '../utils/DocxPdfApi';
 import * as pdfjs from 'pdfjs-dist';
 import pdfjsWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
@@ -227,18 +227,13 @@ export default function Step3PreviewPrint({
   const [docxError, setDocxError] = useState(null);
   const [localPdfBlob, setLocalPdfBlob] = useState(null);
   const [isGeneratingLocal, setIsGeneratingLocal] = useState(false);
-
-  const {
-    pdfBlob,
-    isGenerating,
-    clearBlob
-  } = useGeneratePDF();
+  const [pdfError, setPdfError] = useState(null);
 
   // Clear PDF Blob when questions list changes to force regeneration of new content
   const clearBlobs = useCallback(() => {
-    clearBlob();
     setLocalPdfBlob(null);
-  }, [clearBlob]);
+    setPdfError(null);
+  }, []);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -336,35 +331,23 @@ export default function Step3PreviewPrint({
   ]);
 
   const handlePrint = async () => {
-    if (isGenerating || isGeneratingLocal) return;
+    if (isGeneratingLocal) return;
 
     try {
-      const { DocumentRenderer } = await import('../utils/DocumentRenderer');
-      
-      const fallbackTrigger = async () => {
-        const docName = `${examName.replace(/[^a-zA-Z0-9_-]/g, '_')}_Paper.pdf`;
-        
-        if (localPdfBlob) {
-          setIsPreviewOpen(true);
-          return;
-        }
-
-        setIsGeneratingLocal(true);
-        const { PdfExporter } = await import('../utils/PdfExporter');
-        const blob = await PdfExporter.export('paperRoot', docName);
-        setLocalPdfBlob(blob);
+      if (localPdfBlob) {
         setIsPreviewOpen(true);
-        setIsGeneratingLocal(false);
-      };
+        return;
+      }
 
-      await DocumentRenderer.exportPdf(
-        uploadedFile?.type,
-        generatedPreview,
-        examName,
-        fallbackTrigger
-      );
+      setPdfError(null);
+      setIsGeneratingLocal(true);
+      const blob = await convertGeneratedDocxToPdf(generatedPreview, examName);
+      setLocalPdfBlob(blob);
+      setIsPreviewOpen(true);
     } catch (err) {
       console.error("[Step3] PDF Generation failed:", err);
+      setPdfError(err.message || "Failed to convert the generated DOCX to PDF.");
+    } finally {
       setIsGeneratingLocal(false);
     }
   };
@@ -464,7 +447,7 @@ export default function Step3PreviewPrint({
             )}
           </div>
           <div style={{ marginTop: '6px', fontSize: '11px', color: '#1c3d80' }}>
-            📄 <b>Programmatic export active:</b> Clicking the action button will directly download the final document preserving the visual layout and styles.
+            📄 <b>DOCX-first export active:</b> PDF downloads are generated from the final Word document by the conversion backend.
           </div>
         </div>
         
@@ -490,12 +473,18 @@ export default function Step3PreviewPrint({
               type="button" 
               className="btn btn-primary" 
               onClick={handlePrint} 
-              disabled={isGenerating || isGeneratingLocal}
+              disabled={isGeneratingLocal || !generatedPreview}
             >
-              {isGenerating || isGeneratingLocal ? '⌛ Generating PDF...' : '🖨️ Print / Save as PDF'}
+              {isGeneratingLocal ? '⌛ Generating PDF...' : '🖨️ Download PDF'}
             </button>
           </div>
         </div>
+
+        {pdfError && (
+          <div className="gen-note" style={{ backgroundColor: 'var(--red-soft)', color: 'var(--red)', border: '1px solid #ffc9c9' }}>
+            ⚠️ {pdfError}
+          </div>
+        )}
 
         {isCustomTemplate ? (
           <DocumentPreview 
@@ -936,11 +925,11 @@ export default function Step3PreviewPrint({
 
       <PDFPreviewModal
         isOpen={isPreviewOpen}
-        blob={localPdfBlob || pdfBlob}
+        blob={localPdfBlob}
         examName={examName}
         onClose={handleClosePreview}
         onDownload={() => {
-          const fileToDownload = localPdfBlob || pdfBlob;
+          const fileToDownload = localPdfBlob;
           if (fileToDownload) {
             const url = URL.createObjectURL(fileToDownload);
             const link = document.createElement('a');
