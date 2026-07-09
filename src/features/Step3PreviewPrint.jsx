@@ -629,7 +629,7 @@ export default function Step3PreviewPrint({
                                 {pageItems.map((item, idx) => {
                                   if (item.type === 'section_header') {
                                     return (
-                                      <div key={idx} className="paper-section-title" style={{ marginTop: '14px', breakAfter: 'avoid' }}>
+                                      <div key={idx} className="paper-section-title" style={{ marginTop: '32px', marginBottom: '14px', breakAfter: 'avoid' }}>
                                         <span>{item.title}</span>
                                         <span>{item.marksLabel}</span>
                                       </div>
@@ -794,7 +794,7 @@ export default function Step3PreviewPrint({
                           {pageItems.map((item, idx) => {
                             if (item.type === 'section_header') {
                               return (
-                                <div key={idx} className="paper-section-title" style={{ marginTop: '14px', breakAfter: 'avoid' }}>
+                                <div key={idx} className="paper-section-title" style={{ marginTop: '32px', marginBottom: '14px', breakAfter: 'avoid' }}>
                                   <span>{item.title}</span>
                                   <span>{item.marksLabel}</span>
                                 </div>

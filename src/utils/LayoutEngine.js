@@ -99,8 +99,8 @@ export const LayoutEngine = {
     // Estimates height of a flow item
     function getItemHeight(item, qNum) {
       if (item.type === 'section_header') {
-        const lines = estimateLines(`${item.title} (${item.marksLabel})`, contentWidth, 12.5);
-        return lines * 16 + 24; // 16pt line height + 24pt vertical margins
+        const lines = estimateLines(`${item.title} (${item.marksLabel})`, contentWidth, 16.5);
+        return lines * 20 + 64; // 20pt line height + 64pt vertical spacing/margins
       }
       
       const q = item.q;
@@ -148,7 +148,7 @@ export const LayoutEngine = {
         });
       }
 
-      return qTextHeight + optHeight + 12; // 12pt margin bottom after question
+      return qTextHeight + optHeight + 3; // 3pt margin bottom after question
     }
     
     function wordsList(str) {

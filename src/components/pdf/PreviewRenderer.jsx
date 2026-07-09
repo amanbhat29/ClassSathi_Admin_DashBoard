@@ -83,7 +83,7 @@ export default function PreviewRenderer({ docxBase64, examName, duration, subjec
           table.style.width = '100%';
           table.style.borderCollapse = 'collapse';
           table.style.border = 'none';
-          table.style.margin = '4px 0 12px 0';
+          table.style.margin = '4px 0 6px 0';
           for (let c = 0; c < cells.length; c++) {
             cells[c].style.border = 'none';
             cells[c].style.padding = '4px 8px';
@@ -117,7 +117,7 @@ export default function PreviewRenderer({ docxBase64, examName, duration, subjec
         block.className = 'q-row';
         block.style.breakInside = 'avoid';
         block.style.pageBreakInside = 'avoid';
-        block.style.marginBottom = '12px';
+        block.style.marginBottom = '6px';
 
         const qPara = el;
         qPara.className = 'q-text';

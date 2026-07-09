@@ -100,11 +100,16 @@ export class QuestionRenderer {
 
     let spacingEl = getFirstChildByLocalName(pPr, "spacing");
     if (spacingEl) {
-      spacingEl.setAttribute("w:before", "120");
-      spacingEl.setAttribute("w:after", "100");
+      spacingEl.setAttribute("w:before", "480");
+      spacingEl.setAttribute("w:after", "160");
     } else {
-      pPr.appendChild(createEl(xmlDoc, "spacing", { before: "120", after: "100", line: "240", lineRule: "auto" }));
+      pPr.appendChild(createEl(xmlDoc, "spacing", { before: "480", after: "160", line: "240", lineRule: "auto" }));
     }
+
+    // Add right tab stop to paragraph properties for right-aligning the marks
+    const tabs = createEl(xmlDoc, "tabs");
+    tabs.appendChild(createEl(xmlDoc, "tab", { val: "right", pos: "9700" }));
+    pPr.appendChild(tabs);
 
     if (!getFirstChildByLocalName(pPr, "keepNext")) {
       pPr.appendChild(createEl(xmlDoc, "keepNext"));
@@ -117,12 +122,17 @@ export class QuestionRenderer {
     if (!bEl) rPrTitle.appendChild(createEl(xmlDoc, "b"));
     
     let szEl = getFirstChildByLocalName(rPrTitle, "sz");
-    if (szEl) szEl.setAttribute("w:val", "26");
-    else rPrTitle.appendChild(createEl(xmlDoc, "sz", { val: "26" }));
+    if (szEl) szEl.setAttribute("w:val", "32");
+    else rPrTitle.appendChild(createEl(xmlDoc, "sz", { val: "32" }));
 
     rTitle.appendChild(rPrTitle);
     rTitle.appendChild(createEl(xmlDoc, "t", {}, title));
     p.appendChild(rTitle);
+
+    // Tab character run to push the marks to the right margin
+    const rTab = createEl(xmlDoc, "r");
+    rTab.appendChild(createEl(xmlDoc, "tab"));
+    p.appendChild(rTab);
 
     const rMarks = createEl(xmlDoc, "r");
     const rPrMarks = baseRPr ? baseRPr.cloneNode(true) : createEl(xmlDoc, "rPr");
@@ -134,7 +144,7 @@ export class QuestionRenderer {
     else rPrMarks.appendChild(createEl(xmlDoc, "sz", { val: "22" }));
 
     rMarks.appendChild(rPrMarks);
-    rMarks.appendChild(createEl(xmlDoc, "t", { "xml:space": "preserve" }, ` (${count} × ${marks} = ${count * marks} marks)`));
+    rMarks.appendChild(createEl(xmlDoc, "t", { "xml:space": "preserve" }, `(${count} × ${marks} = ${count * marks} marks)`));
     p.appendChild(rMarks);
 
     return p;
@@ -309,12 +319,17 @@ export class QuestionRenderer {
 
     nodes.push(tbl);
 
-    // Spacer paragraph after table to prevent merging and provide 12pt (240 dxa) bottom margin
+    // Spacer paragraph after table to prevent merging and provide a tiny bottom margin
     const spacerP = createEl(xmlDoc, "p");
     const spacerPPr = createEl(xmlDoc, "pPr");
     spacerP.appendChild(spacerPPr);
-    spacerPPr.appendChild(createEl(xmlDoc, "spacing", { before: "0", after: "240", line: "240", lineRule: "auto" }));
-    spacerPPr.appendChild(createEl(xmlDoc, "sz", { val: "2" }));
+    spacerPPr.appendChild(createEl(xmlDoc, "spacing", { before: "0", after: "40", line: "20", lineRule: "exact" }));
+    
+    const rPr = createEl(xmlDoc, "rPr");
+    rPr.appendChild(createEl(xmlDoc, "sz", { val: "2" }));
+    rPr.appendChild(createEl(xmlDoc, "szCs", { val: "2" }));
+    spacerPPr.appendChild(rPr);
+    
     spacerPPr.appendChild(createEl(xmlDoc, "keepLines"));
 
     nodes.push(spacerP);
